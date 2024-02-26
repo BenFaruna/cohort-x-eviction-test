@@ -21,11 +21,8 @@ const main = async () => {
 
     const ROUTER = await ethers.getContractAt("IUniswap", UNIRouter);
 
-    const approveUSDCTx = await USDC.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 6));
+    const approveUSDCTx = await USDC.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 18));
     approveUSDCTx.wait()
-
-    const approveDAITx = await DAI.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 6));
-    approveDAITx.wait()
 
     const ethBal = await impersonatedSigner.provider.getBalance(ImpersonatedUserAddress);
     const userWethBal = await WETH.balanceOf(impersonatedSigner.address);
@@ -36,11 +33,13 @@ const main = async () => {
     console.log("ETH Balance:",ethers.formatUnits(ethBal, 18));
     console.log("USDC Balance:", ethers.formatUnits(usdcBal, 6))
 
+    const deadline = Math.floor(Date.now() / 1000 + (60*15));
+
     console.log("-------------------------------Adding liquidity----------------------------------")
 
     const liquidityTx = await ROUTER.connect(impersonatedSigner)
         .addLiquidityETH(USDCAddress, 20_000_000_000n, 100_000n,
-        parseEther("2"), ImpersonatedUserAddress, (Date.now() + (60*15)),
+        parseEther("2"), ImpersonatedUserAddress, deadline,
         {value: parseEther("2")});
     liquidityTx.wait()
 
@@ -51,20 +50,20 @@ const main = async () => {
 
     console.log("-------------------------------Adding liquidity for ERC20-ERC20 pool----------------------------------")
 
-    const approveUSDCTwoTx = await USDC.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 6));
-    approveUSDCTwoTx.wait()
+    const approveWETHTx = await USDC.connect(impersonatedSigner).approve(UNIRouter, parseEther("50"));
+    approveWETHTx.wait()
 
-    const approveDAITwoTx = await DAI.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 6));
-    approveDAITwoTx.wait()
+    const approveDAITx = await DAI.connect(impersonatedSigner).approve(UNIRouter, parseUnits("500", 18));
+    approveDAITx.wait()
 
 
     const addLiquidityERC20Tx = await ROUTER.connect(impersonatedSigner)
-        .addLiquidity(USDCAddress, DAIAddress, 10_000n, 10_000n,
-        5_000n, 5_000n, ImpersonatedUserAddress, (Date.now() + (60*15)));
+        .addLiquidity(WETHAddress, DAIAddress, 400n, 200n,
+        400n, 200n, ImpersonatedUserAddress, deadline);
     addLiquidityERC20Tx.wait()
 
     console.log("DAI Balance after adding liquidity:", ethers.formatUnits(await DAI.balanceOf(ImpersonatedUserAddress), 18));
-    console.log("USDC Balance after removing liquidity:", ethers.formatUnits(await USDC.balanceOf(ImpersonatedUserAddress), 6));
+    console.log("WETH Balance after removing liquidity:", ethers.formatUnits(await WETH.balanceOf(ImpersonatedUserAddress), 18));
 }
 
 main().catch((error) => {
