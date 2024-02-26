@@ -11,14 +11,13 @@ contract NFTMarketplace is ERC721 {
 
     constructor() ERC721("NFTMarketplace", "NFTM") {}
 
-    uint maxNftId = 5;
-
     mapping(uint => uint) nftPrices;
     mapping(uint => address) nftOwner;
 
     function setNftPrice(uint _nftId, uint _price) public {
         require(msg.sender == nftOwner[_nftId], "cannot set price for nft you don't own");
         nftPrices[_nftId] = _price;
+        approve(address(this), _nftId);
     }
 
     function buyNft(uint _nftId) public payable {
@@ -26,7 +25,7 @@ contract NFTMarketplace is ERC721 {
         require(msg.value >= nftPrices[_nftId], "insufficient funds");
         nftOwner[_nftId] = msg.sender;
         payable(_prevOwner).transfer(msg.value);
-        safeTransferFrom(_prevOwner, msg.sender, _nftId);
+        this.safeTransferFrom(_prevOwner, msg.sender, _nftId);
 
         emit NFTBought(msg.sender, _nftId, _prevOwner);
     }
